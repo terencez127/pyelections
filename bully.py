@@ -1,6 +1,5 @@
 __author__ = 'terence'
 
-import logging
 import zerorpc
 import gevent
 import sys
@@ -65,19 +64,19 @@ class Bully():
         self.S.h = j
 
     def new_coordinator(self, j):
-        logging.debug('call new_coordinator')
+        print 'call new_coordinator'
         if self.S.h == j and self.S.s == 'Election':
             self.S.c = j
             self.S.s = 'Reorganization'
 
     def ready(self, j, x=None):
-        logging.debug('call ready')
+        print 'call ready'
         if self.S.c == j and self.S.s == "Reorganization":
             self.S.d = x
             self.S.s = 'Normal'
 
     def election(self):
-        logging.debug('Check the states of higher priority nodes:')
+        print 'Check the states of higher priority nodes:'
 
         for i, server in enumerate(self.servers[self.i + 1:]):
             try:
@@ -90,7 +89,7 @@ class Bully():
             except zerorpc.TimeoutExpired:
                 print '%s Timeout!' % server
 
-        logging.debug('halt all lower priority nodes including this node:')
+        print 'halt all lower priority nodes including this node:'
         self.halt(self.i)
         self.S.s = 'Election'
         self.S.h = self.i
@@ -104,7 +103,7 @@ class Bully():
             self.S.Up.append(self.connections[i])
 
         # reached 'election point',inform nodes of new coordinator
-        logging.debug('inform nodes of new coordinator:')
+        print 'inform nodes of new coordinator:'
         self.S.c = self.i
         self.S.s = 'Reorganization'
         for j in self.S.Up:
@@ -125,7 +124,7 @@ class Bully():
                 return
 
         self.S.s = 'Normal'
-        logging.debug('[%s] Starting ZeroRPC Server' % self.servers[self.i])
+        print '[%s] Starting ZeroRPC Server' % self.servers[self.i]
         self.check_servers_greenlet = self.pool.spawn(self.check())
 
     def recovery(self):
@@ -149,7 +148,7 @@ class Bully():
                             self.election()
                             return
             elif self.S.s == 'Normal' and self.S.c != self.i:
-                logging.debug('check coordinator\'s state')
+                print 'check coordinator\'s state'
                 try:
                     result = self.connections[self.S.c].are_you_there()
                     print '%s : are_you_there = %s' % (self.servers[self.S.c], result)
@@ -173,14 +172,13 @@ class Bully():
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
     addr = sys.argv[1]
     bully = Bully(addr)
     s = zerorpc.Server(bully)
     s.bind('tcp://' + addr)
     bully.start()
     # Start server
-    logging.debug('[%s] Starting ZeroRPC Server' % addr)
+    print '[%s] Starting ZeroRPC Server' % addr
     s.run()
 
 
